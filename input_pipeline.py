@@ -53,7 +53,7 @@ def create_split(dataset_builder, batch_size, image_size, train, dtype, cache=Fa
 
   ds = dataset_builder.as_dataset(split=split)
   options = tf.data.Options()
-  options.experimental_threading.private_threadpool_size = 48
+  options.threading.private_threadpool_size = 48
   ds = ds.with_options(options)
 
   if cache:
