@@ -45,10 +45,9 @@ def create_split(dataset_builder, batch_size, image_size, train, dtype, cache=Fa
 
   def preprocess_example(example):
     image = example['image']
-    if train:
-      image = preprocess_for_train(image, image_size, dtype)
-    else:
-      image = preprocess_for_eval(image, image_size, dtype)
+    preprocess_fn = preprocess_for_train if train else preprocess_for_eval
+    image = preprocess_fn(image, image_size, dtype)
+    image = image / 127.5 - 1
     return {'image': image, 'label': example['label']}
 
   ds = dataset_builder.as_dataset(split=split)
