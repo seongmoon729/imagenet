@@ -5,6 +5,7 @@ import tensorflow_datasets as tfds
 
 CROP_PADDING = 32
 SEED = 1
+tf.random.set_seed(SEED)
 
 def preprocess_for_train(image, image_size, dtype):
   begin, size, _ = tf.image.sample_distorted_bounding_box(
