@@ -4,6 +4,7 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 
 CROP_PADDING = 32
+SEED = 1
 
 def preprocess_for_train(image, image_size, dtype):
   begin, size, _ = tf.image.sample_distorted_bounding_box(
@@ -12,7 +13,7 @@ def preprocess_for_train(image, image_size, dtype):
       area_range=(0.05, 1.0),
       min_object_covered=0,
       use_image_if_no_bounding_boxes=True,
-      seed=1)
+      seed=SEED)
   image = tf.slice(image, begin, size)
   image.set_shape([None, None, 3])
   image = tf.image.resize(image, [image_size, image_size])
@@ -61,7 +62,7 @@ def create_split(dataset_builder, batch_size, image_size, train, dtype, cache=Fa
 
   if train:
     ds = ds.repeat()
-    ds = ds.shuffle(16 * batch_size, seed=0)
+    ds = ds.shuffle(16 * batch_size, seed=SEED)
 
   ds = ds.map(preprocess_example, num_parallel_calls=-1)
   ds = ds.batch(batch_size, drop_remainder=True)
