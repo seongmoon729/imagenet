@@ -147,6 +147,8 @@ def prepare_tf_data(xs):
   local_device_count = jax.local_device_count()
   def _prepare(x):
     x = x._numpy()  # for zero-copy conversion between TF and Numpy
+    # Reshape data to shard to multiple devices.
+    # [N, ...] -> [C, N // C, ...]
     return x.reshape((local_device_count, -1) + x.shape[1:])
   return jax.tree_map(_prepare, xs)
 
@@ -281,7 +283,7 @@ def train_and_evaluate(config: ml_collections.ConfigDict,
   state = restore_checkpoint(state, workdir)
   step_offset = int(state.step)
   state = jax_utils.replicate(state)  # replicates arrays to multiple devices.
-  
+                                      # `state` pytree  -> `replicated states` pytree
   p_train_step = jax.pmap(
       functools.partial(train_step, learning_rate_fn=learning_rate_fn),
       axis_name='batch')
