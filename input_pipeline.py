@@ -7,14 +7,21 @@ CROP_PADDING = 32
 SEED = 1
 tf.random.set_seed(SEED)
 
-def preprocess_for_train(image, image_size, dtype):
-  begin, size, _ = tf.image.sample_distorted_bounding_box(
+def preprocess_for_train(image, seed, image_size, dtype):
+#  begin, size, _ = tf.image.sample_distorted_bounding_box(
+#      tf.shape(image),
+#      tf.zeros([0, 0, 4], tf.float32),
+#      area_range=(0.05, 1.0),
+#      min_object_covered=0,
+#      use_image_if_no_bounding_boxes=True,
+#      seed=SEED)
+  begin, size, _ = tf.image.stateless_sample_distorted_bounding_box(
       tf.shape(image),
       tf.zeros([0, 0, 4], tf.float32),
       area_range=(0.05, 1.0),
       min_object_covered=0,
       use_image_if_no_bounding_boxes=True,
-      seed=SEED)
+      seed=(SEED, seed))
   image = tf.slice(image, begin, size)
   image.set_shape([None, None, 3])
   image = tf.image.resize(image, [image_size, image_size])
@@ -46,10 +53,12 @@ def create_split(dataset_builder, batch_size, image_size, train, dtype, cache=Fa
     start = jax.process_index() * split_size
     split = 'validation[{}:{}]'.format(start, start + split_size)
 
-  def preprocess_example(example):
+  def preprocess_example(example, seed=None):
     image = example['image']
-    preprocess_fn = preprocess_for_train if train else preprocess_for_eval
-    image = preprocess_fn(image, image_size, dtype)
+    if train:
+      image = preprocess_for_train(image, seed, image_size, dtype)
+    else:
+      image = preprocess_for_eval(image, image_size, dtype)
     image = image / 127.5 - 1
     return {'image': image, 'label': example['label']}
 
@@ -63,6 +72,7 @@ def create_split(dataset_builder, batch_size, image_size, train, dtype, cache=Fa
 
   if train:
     ds = ds.repeat()
+    ds = tf.data.Dataset.zip((ds, tf.data.Dataset.random(SEED)))
     ds = ds.shuffle(16 * batch_size, seed=SEED)
 
   ds = ds.map(preprocess_example, num_parallel_calls=-1)
