@@ -11,7 +11,8 @@ def preprocess_for_train(image, image_size, dtype):
       tf.zeros([0, 0, 4], tf.float32),
       area_range=(0.05, 1.0),
       min_object_covered=0,
-      use_image_if_no_bounding_boxes=True)
+      use_image_if_no_bounding_boxes=True,
+      seed=1)
   image = tf.slice(image, begin, size)
   image.set_shape([None, None, 3])
   image = tf.image.resize(image, [image_size, image_size])
