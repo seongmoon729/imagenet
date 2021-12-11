@@ -12,6 +12,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string('workdir', None, 'Directory to store model data.')
 flags.DEFINE_string('data_dir', '.', 'Directory of tfds data.')
+flags.DEFINE_integer('seed', 1, 'Random seed.')
 config_flags.DEFINE_config_file(
     'config',
     None,
@@ -37,7 +38,10 @@ def main(argv):
   platform.work_unit().create_artifact(platform.ArtifactType.DIRECTORY,
                                        FLAGS.workdir, 'workdir')
 
-  train.train_and_evaluate(FLAGS.config, FLAGS.workdir, FLAGS.data_dir)
+  train.train_and_evaluate(FLAGS.config,
+                           FLAGS.workdir,
+                           FLAGS.data_dir,
+                           FLAGS.seed)
 
 
 if __name__ == '__main__':

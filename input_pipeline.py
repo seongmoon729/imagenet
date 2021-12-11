@@ -4,17 +4,8 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 
 CROP_PADDING = 32
-SEED = 1
-tf.random.set_seed(SEED)
 
 def preprocess_for_train(image, seed, image_size, dtype):
-#  begin, size, _ = tf.image.sample_distorted_bounding_box(
-#      tf.shape(image),
-#      tf.zeros([0, 0, 4], tf.float32),
-#      area_range=(0.05, 1.0),
-#      min_object_covered=0,
-#      use_image_if_no_bounding_boxes=True,
-#      seed=SEED)
   begin, size, _ = tf.image.stateless_sample_distorted_bounding_box(
       tf.shape(image),
       tf.zeros([0, 0, 4], tf.float32),
@@ -41,8 +32,9 @@ def preprocess_for_eval(image, image_size, dtype):
   image = tf.cast(image, dtype)
   return image
 
-def create_split(dataset_builder, batch_size, image_size, train, dtype, cache=False):
+def create_split(dataset_builder, batch_size, image_size, train, dtype, seed, cache=False):
   if train:
+    tf.random.set_seed(seed)
     train_examples = dataset_builder.info.splits['train'].num_examples
     split_size = train_examples // jax.process_count()
     start = jax.process_index() * split_size
@@ -53,10 +45,10 @@ def create_split(dataset_builder, batch_size, image_size, train, dtype, cache=Fa
     start = jax.process_index() * split_size
     split = 'validation[{}:{}]'.format(start, start + split_size)
 
-  def preprocess_example(example, seed=None):
+  def preprocess_example(example, seed2=None):
     image = example['image']
     if train:
-      image = preprocess_for_train(image, seed, image_size, dtype)
+      image = preprocess_for_train(image, seed2, image_size, dtype)
     else:
       image = preprocess_for_eval(image, image_size, dtype)
     image = image / 127.5 - 1
@@ -72,8 +64,8 @@ def create_split(dataset_builder, batch_size, image_size, train, dtype, cache=Fa
 
   if train:
     ds = ds.repeat()
-    ds = tf.data.Dataset.zip((ds, tf.data.Dataset.random(SEED)))
-    ds = ds.shuffle(16 * batch_size, seed=SEED)
+    ds = tf.data.Dataset.zip((ds, tf.data.Dataset.random(seed)))
+    ds = ds.shuffle(16 * batch_size, seed=seed)
 
   ds = ds.map(preprocess_example, num_parallel_calls=-1)
   ds = ds.batch(batch_size, drop_remainder=True)

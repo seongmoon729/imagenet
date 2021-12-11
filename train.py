@@ -158,10 +158,11 @@ def create_input_iter(dataset_builder,
                       image_size,
                       dtype,
                       train,
+                      seed,
                       cache):
   ds = input_pipeline.create_split(
       dataset_builder, batch_size, image_size=image_size, dtype=dtype,
-      train=train, cache=cache)
+      train=train, seed=seed, cache=cache)
   it = map(prepare_tf_data, ds)
   it = jax_utils.prefetch_to_device(it, 2)
   return it
@@ -221,12 +222,12 @@ def create_train_state(rng,
 
 
 def train_and_evaluate(config: ml_collections.ConfigDict,
-                       workdir: str, data_dir: str) -> TrainState:
+                       workdir: str, data_dir: str, seed: int) -> TrainState:
 
   writer = metric_writers.create_default_writer(
       logdir=workdir, just_logging=bool(jax.process_index())) # only host write metrics.
 
-  rng = random.PRNGKey(0)
+  rng = random.PRNGKey(seed)
 
   image_size = 224
 
@@ -247,10 +248,10 @@ def train_and_evaluate(config: ml_collections.ConfigDict,
   dataset_builder = tfds.builder(config.dataset, data_dir=data_dir)
   train_iter = create_input_iter(
       dataset_builder, local_batch_size, image_size, input_dtype,
-      train=True, cache=config.cache)
+      train=True, seed=seed, cache=config.cache)
   eval_iter = create_input_iter(
       dataset_builder, local_batch_size, image_size, input_dtype,
-      train=False, cache=config.cache)
+      train=False, seed=seed, cache=config.cache)
 
   steps_per_epoch = (
       dataset_builder.info.splits['train'].num_examples // config.batch_size)
