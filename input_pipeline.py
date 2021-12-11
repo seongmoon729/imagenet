@@ -5,14 +5,14 @@ import tensorflow_datasets as tfds
 
 CROP_PADDING = 32
 
-def preprocess_for_train(image, seed, image_size, dtype):
+def preprocess_for_train(image, seed, seed2, image_size, dtype):
   begin, size, _ = tf.image.stateless_sample_distorted_bounding_box(
       tf.shape(image),
       tf.zeros([0, 0, 4], tf.float32),
       area_range=(0.05, 1.0),
       min_object_covered=0,
       use_image_if_no_bounding_boxes=True,
-      seed=(SEED, seed))
+      seed=(seed, seed2))
   image = tf.slice(image, begin, size)
   image.set_shape([None, None, 3])
   image = tf.image.resize(image, [image_size, image_size])
@@ -48,7 +48,7 @@ def create_split(dataset_builder, batch_size, image_size, train, dtype, seed, ca
   def preprocess_example(example, seed2=None):
     image = example['image']
     if train:
-      image = preprocess_for_train(image, seed2, image_size, dtype)
+      image = preprocess_for_train(image, seed, seed2, image_size, dtype)
     else:
       image = preprocess_for_eval(image, image_size, dtype)
     image = image / 127.5 - 1
